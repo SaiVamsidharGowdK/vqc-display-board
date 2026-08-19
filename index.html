@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VQC-2 Compartment #16 - Tirumala Live Display Board</title>
+  
+  <!-- SEO & Accessibility -->
+  <meta name="description" content="Real-time outdoor LED display board for Tirumala Vaikuntam Queue Complex VQC-2 Compartment #16 showing countdown timer, Garbhagriha shrine status, door opening alerts, and devotee guidance.">
+  
+  <!-- Fonts: Inter for UI body, JetBrains Mono & Share Tech Mono for Outdoor LED digital timers -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS v3 CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            vqc: {
+              navy: '#0B1120',
+              card: '#111A2E',
+              border: '#1E293B',
+              green: '#10B981',
+              yellow: '#F59E0B',
+              red: '#EF4444',
+              gold: '#FBBF24',
+              cyan: '#06B6D4'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['"Share Tech Mono"', '"JetBrains Mono"', 'monospace']
+          },
+          animation: {
+            'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'flash-red': 'flashRed 0.8s infinite alternate',
+            'marquee': 'marquee 25s linear infinite',
+            'soundwave': 'soundwave 1.2s ease-in-out infinite alternate',
+          },
+          keyframes: {
+            flashRed: {
+              '0%': { backgroundColor: '#0B1120', borderColor: '#EF4444' },
+              '100%': { backgroundColor: '#7F1D1D', borderColor: '#FCA5A5' }
+            },
+            marquee: {
+              '0%': { transform: 'translateX(100%)' },
+              '100%': { transform: 'translateX(-100%)' }
+            },
+            soundwave: {
+              '0%': { height: '20%' },
+              '100%': { height: '100%' }
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- React 18, ReactDOM, and Babel Standalone -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    /* Outdoor 55-inch LED Display Matrix Simulation Effects */
+    body {
+      background-color: #0B1120;
+      color: #F8FAFC;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+      user-select: none;
+    }
+
+    /* LED Glow Effects for High Contrast Outdoor Readability */
+    .led-glow-green {
+      text-shadow: 0 0 15px rgba(16, 185, 129, 0.8), 0 0 30px rgba(16, 185, 129, 0.4);
+    }
+    .led-glow-yellow {
+      text-shadow: 0 0 15px rgba(245, 158, 11, 0.8), 0 0 30px rgba(245, 158, 11, 0.4);
+    }
+    .led-glow-red {
+      text-shadow: 0 0 20px rgba(239, 68, 68, 0.9), 0 0 40px rgba(239, 68, 68, 0.6);
+    }
+    .led-glow-cyan {
+      text-shadow: 0 0 15px rgba(6, 182, 212, 0.8);
+    }
+
+    .box-glow-green {
+      box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.5), inset 0 0 15px rgba(16, 185, 129, 0.2);
+    }
+    .box-glow-yellow {
+      box-shadow: 0 0 25px -5px rgba(245, 158, 11, 0.5), inset 0 0 15px rgba(245, 158, 11, 0.2);
+    }
+    .box-glow-red {
+      box-shadow: 0 0 35px -2px rgba(239, 68, 68, 0.7), inset 0 0 20px rgba(239, 68, 68, 0.3);
+    }
+
+    /* LED Dot Matrix Texture Filter (Toggleable in Simulator mode) */
+    .led-matrix-overlay::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: radial-gradient(rgba(255, 255, 255, 0.08) 15%, transparent 16%);
+      background-size: 4px 4px;
+      pointer-events: none;
+      z-index: 40;
+    }
+
+    /* Custom Scrollbar for Debug Panel */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0B1120;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-[#0B1120] text-slate-100 flex flex-col justify-between selection:bg-emerald-500 selection:text-black">
+  
+  <div id="root"></div>
+
+  <!-- Audio Synthesizer for Door Unlatch Alarm & Temple Chimes -->
+  <script>
+    class AudioSynthesizer {
+      constructor() {
+        this.ctx = null;
+      }
+
+      initCtx() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) {
+            this.ctx = new AudioContext();
+          }
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      // Temple Bell / Brass Chime Sound
+      playChime() {
+        try {
+          this.initCtx();
+          if (!this.ctx) return;
+
+          const now = this.ctx.currentTime;
+          const osc1 = this.ctx.createOscillator();
+          const osc2 = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+
+          osc1.type = 'sine';
+          osc1.frequency.setValueAtTime(523.25, now); // C5
+          osc1.frequency.exponentialRampToValueAtTime(261.63, now + 1.8);
+
+          osc2.type = 'triangle';
+          osc2.frequency.setValueAtTime(659.25, now); // E5
+
+          gain.gain.setValueAtTime(0.4, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
+
+          osc1.connect(gain);
+          osc2.connect(gain);
+          gain.connect(this.ctx.destination);
+
+          osc1.start(now);
+          osc2.start(now);
+          osc1.stop(now + 2.0);
+          osc2.stop(now + 2.0);
+        } catch (e) {
+          console.log('Audio synth notification suppressed', e);
+        }
+      }
+
+      // Door Unlatching Alarm Strobe Sound
+      playDoorAlarm() {
+        try {
+          this.initCtx();
+          if (!this.ctx) return;
+
+          const now = this.ctx.currentTime;
+          
+          // Two-tone warning siren (High A5 - E5 chime sequence)
+          const notes = [880, 659.25, 880, 659.25, 1046.5];
+          notes.forEach((freq, index) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            const startTime = now + (index * 0.18);
+            
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(freq, startTime);
+            
+            gain.gain.setValueAtTime(0.3, startTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.16);
+
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+
+            osc.start(startTime);
+            osc.stop(startTime + 0.17);
+          });
+        } catch (e) {
+          console.log('Alarm sound error', e);
+        }
+      }
+    }
+
+    window.vqcAudio = new AudioSynthesizer();
+  </script>
+
+  <!-- React Application Code -->
+  <script type="text/babel" src="app.jsx"></script>
+</body>
+</html>
